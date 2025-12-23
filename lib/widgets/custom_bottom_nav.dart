@@ -37,8 +37,13 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
         currentIndex: _idx,
         onTap: (i) => setState(() => _idx = i),
         type: BottomNavigationBarType.fixed,
+<<<<<<< HEAD
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
+=======
+        selectedItemColor: Colors.lightBlue,
+        unselectedItemColor: Colors.blueAccent,
+>>>>>>> main
         selectedLabelStyle: const TextStyle(fontFamily: 'OpenSans'),
         unselectedLabelStyle: const TextStyle(fontFamily: 'OpenSans'),
         items: const [
