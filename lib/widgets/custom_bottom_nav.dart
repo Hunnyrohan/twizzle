@@ -1,10 +1,10 @@
 // lib/widgets/custom_bottom_nav.dart
 import 'package:flutter/material.dart';
-import 'package:twizzle/screens/home_screen.dart';
-import 'package:twizzle/screens/message_screen.dart';
-import 'package:twizzle/screens/notification_screen.dart';
-import 'package:twizzle/screens/profile_screen.dart';
-import 'package:twizzle/screens/search_screen.dart';
+import '../screens/home_screen.dart';
+import '../screens/search_screen.dart';
+import '../screens/message_screen.dart';
+import '../screens/notification_screen.dart';
+import '../screens/profile_screen.dart';
 
 class CustomBottomNav extends StatefulWidget {
   const CustomBottomNav({Key? key}) : super(key: key);
@@ -37,8 +37,8 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
         currentIndex: _idx,
         onTap: (i) => setState(() => _idx = i),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.lightBlue,
-        unselectedItemColor: Colors.blueAccent,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
         selectedLabelStyle: const TextStyle(fontFamily: 'OpenSans'),
         unselectedLabelStyle: const TextStyle(fontFamily: 'OpenSans'),
         items: const [
