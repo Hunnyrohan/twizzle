@@ -22,42 +22,33 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.3),
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      cursorColor: Colors.blue,
+      style: const TextStyle(color: Colors.black, fontSize: 16),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white, // ✅ single background
+        hintText: hintText,
+        hintStyle: TextStyle(color: Colors.grey[600]),
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: Colors.grey[700])
+            : null,
+        suffixIcon: suffixIcon,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 22,
+          vertical: 18,
+        ),
+
+        // ✅ SINGLE BORDER ONLY
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
         ),
       ),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-        ),
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: TextStyle(
-            color: Colors.white.withOpacity(0.6),
-          ),
-          prefixIcon: prefixIcon != null
-              ? Icon(
-                  prefixIcon,
-                  color: Colors.white.withOpacity(0.7),
-                )
-              : null,
-          suffixIcon: suffixIcon,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 18,
-          ),
-        ),
-        validator: validator,
-      ),
+      validator: validator,
     );
   }
 }

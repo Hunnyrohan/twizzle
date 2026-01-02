@@ -8,7 +8,7 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> 
+class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -25,10 +25,7 @@ class _LoginScreenState extends State<LoginScreen>
       duration: Duration(milliseconds: 1500),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
   }
@@ -49,11 +46,7 @@ class _LoginScreenState extends State<LoginScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1DA1F2),
-              Color(0xFF0D8BD9),
-              Color(0xFF0066CC),
-            ],
+            colors: [Color(0xFF1DA1F2), Color(0xFF0D8BD9), Color(0xFF0066CC)],
           ),
         ),
         child: SafeArea(
@@ -134,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen>
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.grey[700],
                           ),
                           onPressed: () {
                             setState(() {
@@ -163,10 +156,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                       SizedBox(height: 30),
-                      AnimatedButton(
-                        text: 'Sign In',
-                        onPressed: _handleLogin,
-                      ),
+                      AnimatedButton(text: 'Sign In', onPressed: _handleLogin),
                     ],
                   ),
                 ),
@@ -174,9 +164,7 @@ class _LoginScreenState extends State<LoginScreen>
                 RichText(
                   text: TextSpan(
                     text: "Don't have an account? ",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                    ),
+                    style: TextStyle(color: Colors.white.withOpacity(0.8)),
                     children: [
                       TextSpan(
                         text: 'Sign Up',

@@ -6,7 +6,6 @@ import 'package:twizzle/screens/notification_screen.dart';
 import 'package:twizzle/screens/profile_screen.dart';
 import 'package:twizzle/screens/search_screen.dart';
 
-
 class CustomBottomNav extends StatefulWidget {
   const CustomBottomNav({Key? key}) : super(key: key);
   @override
