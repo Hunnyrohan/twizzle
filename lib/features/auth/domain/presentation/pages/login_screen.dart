@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/animated_button.dart';
+import '../../../../../widgets/custom_text_field.dart';
+import '../../../../../widgets/animated_button.dart';
 
 class LoginScreen extends StatefulWidget {
   @override

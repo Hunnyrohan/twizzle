@@ -1,10 +1,10 @@
 // lib/widgets/custom_bottom_nav.dart
 import 'package:flutter/material.dart';
-import 'package:twizzle/screens/home_screen.dart';
-import 'package:twizzle/screens/message_screen.dart';
-import 'package:twizzle/screens/notification_screen.dart';
-import 'package:twizzle/screens/profile_screen.dart';
-import 'package:twizzle/screens/search_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/home_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/message_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/notification_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/profile_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/search_screen.dart';
 
 class CustomBottomNav extends StatefulWidget {
   const CustomBottomNav({Key? key}) : super(key: key);

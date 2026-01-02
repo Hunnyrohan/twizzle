@@ -1,10 +1,10 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/splash_screen.dart';
+import 'features/auth/domain/presentation/pages/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/signup_screen.dart';
+import 'features/auth/domain/presentation/pages/login_screen.dart';
+import 'features/auth/domain/presentation/pages/signup_screen.dart';
 import 'widgets/custom_bottom_nav.dart'; // ← NEW host
 
 void main() => runApp(const TwizzleApp());
