@@ -1,36 +1,38 @@
+// lib/presentation/screens/signup_screen.dart
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'dart:ui';
+import 'package:provider/provider.dart';
+import 'package:twizzle/features/auth/domain/entities/user.dart';
+import 'package:twizzle/features/auth/domain/presentation/providers/user_provider.dart';
+import 'package:twizzle/features/auth/domain/presentation/widgets/frosted_glass.dart';
+import 'package:twizzle/widgets/custom_bottom_nav.dart'; // ← new
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
-
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _pass = TextEditingController();
   bool _obscure = true;
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
+    _name.dispose();
+    _email.dispose();
+    _pass.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final prov = context.watch<UserProvider>();
     return Scaffold(
       body: Stack(
         children: [
-          // ---- gradient background ----
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -44,8 +46,6 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
           ),
-
-          // ---- glass card ----
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -59,7 +59,6 @@ class _SignupScreenState extends State<SignupScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // ---- title ----
                           const Text(
                             'Create Account',
                             style: TextStyle(
@@ -69,31 +68,24 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ),
                           const SizedBox(height: 32),
-
-                          // ---- name ----
-                          _textField(
-                            ctrl: _nameCtrl,
+                          _glassField(
+                            ctrl: _name,
                             hint: 'Full Name',
                             icon: Icons.person_outline,
-                            validator: (v) =>
-                                v!.isEmpty ? 'Enter your name' : null,
+                            validator: (v) => v!.isEmpty ? 'Required' : null,
                           ),
                           const SizedBox(height: 20),
-
-                          // ---- email ----
-                          _textField(
-                            ctrl: _emailCtrl,
+                          _glassField(
+                            ctrl: _email,
                             hint: 'Email',
                             icon: Icons.email_outlined,
                             keyboard: TextInputType.emailAddress,
                             validator: (v) =>
-                                v!.isEmpty ? 'Enter your email' : null,
+                                v!.contains('@') ? null : 'Valid email',
                           ),
                           const SizedBox(height: 20),
-
-                          // ---- password ----
-                          _textField(
-                            ctrl: _passCtrl,
+                          _glassField(
+                            ctrl: _pass,
                             hint: 'Password',
                             icon: Icons.lock_outline,
                             obscure: _obscure,
@@ -108,44 +100,70 @@ class _SignupScreenState extends State<SignupScreen> {
                                   setState(() => _obscure = !_obscure),
                             ),
                             validator: (v) =>
-                                v!.length < 6 ? 'Min 6 characters' : null,
+                                v!.length < 6 ? 'Min 6 chars' : null,
                           ),
                           const SizedBox(height: 32),
-
-                          // ---- create button ----
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (_) => const HomeScreen(),
+                          prov.isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      if (_formKey.currentState!.validate()) {
+                                        final ok = await prov.registerUser(
+                                          User(
+                                            name: _name.text,
+                                            email: _email.text,
+                                            password: _pass.text,
+                                          ),
+                                        );
+                                        if (!mounted) return;
+                                        if (ok) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Registered ✓'),
+                                            ),
+                                          );
+                                          // ➜➜➜  GO TO BOTTOM-NAV HOST
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const CustomBottomNav(),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(content: Text(prov.error)),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: const Color(0xff1DA1F2),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      elevation: 0,
                                     ),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF1DA1F2),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
+                                    child: const Text(
+                                      'Create Account',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Create Account',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
                           const SizedBox(height: 18),
-
-                          // ---- login link ----
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -178,8 +196,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  // ---- reusable glass text-field ----
-  Widget _textField({
+  Widget _glassField({
     required TextEditingController ctrl,
     required String hint,
     required IconData icon,
@@ -197,7 +214,7 @@ class _SignupScreenState extends State<SignupScreen> {
         prefixIcon: Icon(icon, color: Colors.white70),
         suffixIcon: suffix,
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
         filled: true,
         fillColor: Colors.white.withOpacity(0.15),
         border: OutlineInputBorder(
@@ -208,27 +225,6 @@ class _SignupScreenState extends State<SignupScreen> {
         errorStyle: const TextStyle(color: Colors.white),
       ),
       validator: validator,
-    );
-  }
-}
-
-// ---- glass-morphism wrapper ----
-class FrostedGlass extends StatelessWidget {
-  final Widget child;
-  const FrostedGlass({Key? key, required this.child}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-        ),
-        child: child,
-      ),
     );
   }
 }

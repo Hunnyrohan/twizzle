@@ -1,13 +1,26 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'features/auth/domain/presentation/pages/splash_screen.dart';
-import 'screens/onboarding_screen.dart';
-import 'features/auth/domain/presentation/pages/login_screen.dart';
-import 'features/auth/domain/presentation/pages/signup_screen.dart';
-import 'widgets/custom_bottom_nav.dart'; // ← NEW host
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/home_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/login_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/signup_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/splash_screen.dart';
+import 'package:twizzle/features/auth/domain/presentation/providers/user_provider.dart';
+import 'package:twizzle/features/auth/domain/presentation/pages/onboarding_screen.dart';
+import 'package:twizzle/widgets/custom_bottom_nav.dart';
+import 'injection_container.dart' as di;
 
-void main() => runApp(const TwizzleApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await di.init(); // Hive + DI
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => di.sl<UserProvider>(),
+      child: const TwizzleApp(),
+    ),
+  );
+}
 
 class TwizzleApp extends StatelessWidget {
   const TwizzleApp({Key? key}) : super(key: key);
@@ -15,78 +28,33 @@ class TwizzleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Twizzle',
       debugShowCheckedModeBanner: false,
+      title: 'Twizzle',
       theme: ThemeData(
-        primarySwatch: createMaterialColor(const Color(0xff1DA1F2)),
+        primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
-        textTheme: GoogleFonts.openSansTextTheme(),
-        appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xff1DA1F2),
+        textTheme: Theme.of(context).textTheme.apply(fontFamily: 'OpenSans'),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xff1DA1F2),
           elevation: 0,
-          centerTitle: true,
-          iconTheme: const IconThemeData(color: Colors.white),
-          titleTextStyle: GoogleFonts.openSans(
+          iconTheme: IconThemeData(color: Colors.white),
+          titleTextStyle: TextStyle(
+            fontFamily: 'OpenSans',
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xff1DA1F2),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            minimumSize: const Size.fromHeight(48),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.grey.shade100,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 18,
-          ),
-          hintStyle: GoogleFonts.openSans(color: Colors.grey.shade600),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xff1DA1F2),
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
-          type: BottomNavigationBarType.fixed,
-        ),
       ),
-      initialRoute: '/',
+      // remove 'home:'  ←←←  FIX HERE
       routes: {
         '/': (_) => const SplashScreen(),
+        '/home': (_) => const CustomBottomNav(),
         '/onboarding': (_) => const OnboardingScreen(),
-        '/login': (_) => LoginScreen(),
+        '/login': (_) => const LoginScreen(),
         '/signup': (_) => const SignupScreen(),
-        '/home': (_) => const CustomBottomNav(), // ← host with 5 tabs
+        '/feed': (_) => const HomeFeedScreen(),
       },
     );
-  }
-
-  MaterialColor createMaterialColor(Color color) {
-    final strengths = <double>[.05];
-    final swatch = <int, Color>{};
-    final r = color.red, g = color.green, b = color.blue;
-    for (int i = 1; i < 10; i++) strengths.add(0.1 * i);
-    for (var strength in strengths) {
-      final ds = 0.5 - strength;
-      swatch[(strength * 1000).round()] = Color.fromRGBO(
-        r + ((ds < 0 ? r : (255 - r)) * ds).round(),
-        g + ((ds < 0 ? g : (255 - g)) * ds).round(),
-        b + ((ds < 0 ? b : (255 - b)) * ds).round(),
-        1,
-      );
-    }
-    return MaterialColor(color.value, swatch);
   }
 }

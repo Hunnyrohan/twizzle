@@ -15,7 +15,7 @@ class CustomBottomNav extends StatefulWidget {
 class _CustomBottomNavState extends State<CustomBottomNav> {
   int _idx = 0;
   final _pages = [
-    const HomeScreen(),            // ← real feed
+    const HomeFeedScreen(),            // ← real feed
     const SearchScreen(),
     const MessageScreen(),
     const NotificationScreen(),
