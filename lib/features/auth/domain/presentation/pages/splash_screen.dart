@@ -1,9 +1,7 @@
 // lib/presentation/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:provider/provider.dart';
 import 'package:twizzle/injection_container.dart' as di;
-import '../providers/user_provider.dart';
 import 'package:hive/hive.dart';
 
 class SplashScreen extends StatefulWidget {

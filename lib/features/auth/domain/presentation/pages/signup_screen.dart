@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:twizzle/features/auth/domain/entities/user.dart';
 import 'package:twizzle/features/auth/domain/presentation/providers/user_provider.dart';
 import 'package:twizzle/features/auth/domain/presentation/widgets/frosted_glass.dart';
-import 'package:twizzle/widgets/custom_bottom_nav.dart'; // ← new
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -21,9 +20,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
-    _name.dispose();
-    _email.dispose();
-    _pass.dispose();
+    _name.dispose(); _email.dispose(); _pass.dispose();
     super.dispose();
   }
 
@@ -36,11 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF1DA1F2),
-                  Color(0xFF0D8BD9),
-                  Color(0xFF0066CC),
-                ],
+                colors: [Color(0xFF1DA1F2), Color(0xFF0D8BD9), Color(0xFF0066CC)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -80,8 +73,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             hint: 'Email',
                             icon: Icons.email_outlined,
                             keyboard: TextInputType.emailAddress,
-                            validator: (v) =>
-                                v!.contains('@') ? null : 'Valid email',
+                            validator: (v) => v!.contains('@') ? null : 'Valid email',
                           ),
                           const SizedBox(height: 20),
                           _glassField(
@@ -90,58 +82,46 @@ class _SignupScreenState extends State<SignupScreen> {
                             icon: Icons.lock_outline,
                             obscure: _obscure,
                             suffix: IconButton(
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.white70,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscure = !_obscure),
+                              icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.white70),
+                              onPressed: () => setState(() => _obscure = !_obscure),
                             ),
-                            validator: (v) =>
-                                v!.length < 6 ? 'Min 6 chars' : null,
+                            validator: (v) => v!.length < 6 ? 'Min 6 chars' : null,
                           ),
                           const SizedBox(height: 32),
                           prov.isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
+                              ? const CircularProgressIndicator(color: Colors.white)
                               : SizedBox(
                                   width: double.infinity,
                                   height: 48,
                                   child: ElevatedButton(
                                     onPressed: () async {
+                                      FocusScope.of(context).unfocus();
                                       if (_formKey.currentState!.validate()) {
-                                        final ok = await prov.registerUser(
-                                          User(
-                                            name: _name.text,
-                                            email: _email.text,
-                                            password: _pass.text,
-                                          ),
+                                        final newUser = User(
+                                          id: '', // ← EMPTY STRING (not int)
+                                          name: _name.text,
+                                          email: _email.text,
+                                          password: _pass.text,
+                                          token: '',
                                         );
-                                        if (!mounted) return;
-                                        if (ok) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Registered ✓'),
-                                            ),
-                                          );
-                                          // ➜➜➜  GO TO BOTTOM-NAV HOST
-                                          Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const CustomBottomNav(),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(content: Text(prov.error)),
+                                        try {
+                                          final ok = await prov.registerUser(newUser)
+                                              .timeout(const Duration(seconds: 10));
+                                          if (!mounted) return;
+                                          if (ok) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Registered ✓'))
+                                            );
+                                            Navigator.pushReplacementNamed(context, '/login');
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text(prov.error))
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (!mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Server error: $e'))
                                           );
                                         }
                                       }
@@ -149,17 +129,12 @@ class _SignupScreenState extends State<SignupScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white,
                                       foregroundColor: const Color(0xff1DA1F2),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(24),
-                                      ),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                       elevation: 0,
                                     ),
                                     child: const Text(
                                       'Create Account',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ),
@@ -167,19 +142,13 @@ class _SignupScreenState extends State<SignupScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Already have an account?  ',
-                                style: TextStyle(color: Colors.white70),
-                              ),
+                              const Text('Already have an account?  ', style: TextStyle(color: Colors.white70)),
                               GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: const Text(
-                                  'Log in',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                onTap: () {
+                                  FocusScope.of(context).unfocus();
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Log in', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -217,10 +186,7 @@ class _SignupScreenState extends State<SignupScreen> {
         hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
         filled: true,
         fillColor: Colors.white.withOpacity(0.15),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 18),
         errorStyle: const TextStyle(color: Colors.white),
       ),

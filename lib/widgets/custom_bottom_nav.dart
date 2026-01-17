@@ -65,39 +65,4 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
       ),
     );
   }
-
-  void _showCompose(BuildContext ctx) {
-    final ctrl = TextEditingController();
-    showModalBottomSheet(
-      isScrollControlled: true,
-      context: ctx,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          height: 220,
-          child: Column(
-            children: [
-              TextField(
-                controller: ctrl,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: "What's happening?",
-                  border: InputBorder.none,
-                ),
-              ),
-              const Spacer(),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Tweet'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

@@ -8,6 +8,7 @@ import '../repositories/user_repository.dart';
 class LoginUser {
   final UserRepository repo;
   LoginUser(this.repo);
-  Future<Either<Failure, User?>> call(String email, String password) =>
+
+  Future<Either<Failure, User>> call(String email, String password) =>
       repo.loginUser(email, password);
 }

@@ -13,7 +13,7 @@ class HiveLocalSource {
   Future<UserModel?> getUser() async {
     final box = await Hive.openBox(_boxName);
     final json = box.get('user');
-    return json == null ? null : UserModel.fromJson(Map<String, dynamic>.from(json));
+    return json == null ? null : UserModel.fromJson(Map<String, dynamic>.from(json), '');
   }
 
   Future<void> clearUser() async {
