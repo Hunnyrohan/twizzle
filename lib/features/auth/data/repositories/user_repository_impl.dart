@@ -1,4 +1,3 @@
-// lib/data/repositories/user_repository_impl.dart
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import 'package:twizzle/core/error/failures.dart';
@@ -18,11 +17,25 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, User>> registerUser(User user) async {
     try {
       final res = await remote.register(user.name, user.email, user.password);
-      final newUser = UserModel.fromJson(res, user.password);
-      await local.saveUser(newUser);
-      return Right(newUser);
+
+      // ✅ FIX: read from res['data']
+      if (res['success'] == true && res['data'] != null) {
+        final data = res['data'] as Map<String, dynamic>;
+
+        final newUser = UserModel.fromJson(
+          data, // ✅ CORRECT
+          user.password,
+        );
+
+        await local.saveUser(newUser);
+        return Right(newUser);
+      } else {
+        return Left(ServerFailure(res['message'] ?? 'Registration failed'));
+      }
     } on DioError catch (e) {
-      return Left(ServerFailure(e.response?.data['message'] ?? 'Registration failed'));
+      return Left(
+        ServerFailure(e.response?.data['message'] ?? 'Registration failed'),
+      );
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -32,9 +45,21 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, User>> loginUser(String email, String password) async {
     try {
       final res = await remote.login(email, password);
-      final user = UserModel.fromJson(res, password);
-      await local.saveUser(user);
-      return Right(user);
+
+      // ✅ FIX: read from res['data']
+      if (res['success'] == true && res['data'] != null) {
+        final data = res['data'] as Map<String, dynamic>;
+
+        final user = UserModel.fromJson(
+          data, // ✅ CORRECT
+          password,
+        );
+
+        await local.saveUser(user);
+        return Right(user);
+      } else {
+        return Left(ServerFailure(res['message'] ?? 'Login failed'));
+      }
     } on DioError catch (e) {
       return Left(ServerFailure(e.response?.data['message'] ?? 'Login failed'));
     } catch (e) {

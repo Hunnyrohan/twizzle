@@ -1,4 +1,3 @@
-// lib/data/models/user_model.dart
 import '../../domain/entities/user.dart';
 
 class UserModel extends User {
@@ -16,20 +15,18 @@ class UserModel extends User {
          token: token,
        );
 
-  factory UserModel.fromJson(Map<String, dynamic> json, String password) =>
-      UserModel(
-        id: json['user']['id']?.toString() ?? '', // string from server
-        name: json['user']['name'] ?? '',
-        email: json['user']['email'] ?? '',
-        password: password,
-        token: json['token'] ?? '',
-      );
+  /// ✅ CORRECT JSON PARSING
+  factory UserModel.fromJson(Map<String, dynamic> json, String password) {
+    return UserModel(
+      id: json['id'] as String, // ✅ FIXED
+      name: json['name'] as String, // ✅ FIXED
+      email: json['email'] as String, // ✅ FIXED
+      password: password,
+      token: '', // token is cookie-based
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'email': email,
-    'password': password,
-    'token': token,
-  };
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name, 'email': email, 'token': token};
+  }
 }
