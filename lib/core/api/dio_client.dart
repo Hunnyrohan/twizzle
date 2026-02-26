@@ -1,46 +1,56 @@
 import 'package:dio/dio.dart';
+import 'package:hive/hive.dart';
 
 class DioClient {
-  // ANDROID EMULATOR → LOCAL BACKEND
-  static const String _baseUrl = 'http://10.0.2.2:5000/api/auth';
+  static const String _baseUrl = 'http://10.0.2.2:5000/api'; // Base API URL
 
-  static final Dio _dio = Dio()
-    ..options.baseUrl = _baseUrl
-    ..options.connectTimeout = const Duration(seconds: 10)
-    ..options.receiveTimeout = const Duration(seconds: 10)
-    ..interceptors.add(
-      LogInterceptor(requestBody: true, responseBody: true),
-    );
+  final Dio _dio;
 
-  // ✅ REGISTER (MATCHES BACKEND DTO)
-  Future<Map<String, dynamic>> register({
-    required String name, // ✅ MUST be name
-    required String email,
-    required String password,
-  }) async {
-    final res = await _dio.post(
-      '/register',
-      data: {
-        'name': name, // ✅ FIXED
-        'email': email,
-        'password': password,
+  DioClient()
+      : _dio = Dio(
+          BaseOptions(
+            baseUrl: _baseUrl,
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 10),
+            headers: {'Content-Type': 'application/json'},
+          ),
+        ) {
+    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        try {
+          final box = await Hive.openBox('userBox');
+          final userData = box.get('user');
+          if (userData != null) {
+            final token = userData['token'] as String?;
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          }
+        } catch (e) {
+          print('DioClient: Error fetching token from Hive: $e');
+        }
+        return handler.next(options);
       },
-    );
-    return res.data;
+    ));
   }
 
-  // ✅ LOGIN (MATCHES BACKEND DTO)
-  Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-  }) async {
-    final res = await _dio.post(
-      '/login',
-      data: {
-        'identifier': email, // ✅ backend expects identifier
-        'password': password,
-      },
-    );
-    return res.data;
+  Dio get dio => _dio;
+
+  // Generic request methods
+  Future<Response> get(String path, {Map<String, dynamic>? queryParameters, Options? options}) {
+    return _dio.get(path, queryParameters: queryParameters, options: options);
+  }
+
+  Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) {
+    return _dio.post(path, data: data, queryParameters: queryParameters, options: options);
+  }
+
+  Future<Response> put(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) {
+    return _dio.put(path, data: data, queryParameters: queryParameters, options: options);
+  }
+
+  Future<Response> delete(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) {
+    return _dio.delete(path, data: data, queryParameters: queryParameters, options: options);
   }
 }
