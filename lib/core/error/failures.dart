@@ -1,9 +1,13 @@
 // lib/core/error/failures.dart
-abstract class Failure {}
-
-class CacheFailure extends Failure {}
+abstract class Failure {
+  final String message;
+  const Failure(this.message);
+}
 
 class ServerFailure extends Failure {
-  final String message;
-  ServerFailure(this.message);
+  const ServerFailure(super.message);
+}
+
+class CacheFailure extends Failure {
+  const CacheFailure([String message = 'Cache Error']) : super(message);
 }
