@@ -1,6 +1,6 @@
 // lib/presentation/widgets/profile_header.dart
 import 'package:flutter/material.dart';
-import 'frosted_glass.dart';
+import 'package:twizzle/features/auth/domain/presentation/widgets/frosted_glass.dart';
 
 class ProfileHeader extends StatelessWidget {
   final VoidCallback onEdit;
