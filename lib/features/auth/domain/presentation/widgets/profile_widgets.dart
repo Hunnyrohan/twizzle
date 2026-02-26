@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:twizzle/widgets/tweet_card.dart';
 import 'dart:ui';
-import '../../../domain/entities/tweet.dart'; // reuse your Tweet model
+import 'package:twizzle/features/tweets/domain/entities/tweet.dart'; // reuse your Tweet model
 
 
 /* --------------------  EXPORT ALL  -------------------- */
