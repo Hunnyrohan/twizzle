@@ -26,7 +26,7 @@ class MessageRemoteSource {
 
   Future<Map<String, dynamic>> sendImageMessage(String conversationId, String filePath) async {
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(filePath, filename: filePath.split('/').last),
+      'images': await MultipartFile.fromFile(filePath, filename: filePath.split('/').last),
       'type': 'image',
     });
     final res = await _client.post(
@@ -50,6 +50,14 @@ class MessageRemoteSource {
     final res = await _client.post(
       '/messages/conversations',
       data: {'userId': userId},
+    );
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> deleteMessage(String messageId, String type) async {
+    final res = await _client.delete(
+      '/messages/$messageId',
+      data: {'type': type},
     );
     return res.data;
   }
