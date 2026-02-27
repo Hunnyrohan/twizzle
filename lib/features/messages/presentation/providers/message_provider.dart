@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:twizzle/core/config/app_config.dart';
 import 'package:twizzle/features/messages/domain/entities/message.dart';
 import 'package:twizzle/features/messages/domain/repositories/message_repository.dart';
 import 'package:twizzle/core/services/socket_service.dart';
@@ -18,6 +19,7 @@ class MessageProvider extends ChangeNotifier {
   int _unreadCount = 0;
   bool _isLoading = false;
   String _error = '';
+  bool _isSocketInitialized = false;
 
   List<Conversation> get conversations => _conversations;
   List<ChatMessage> get chatMessages => _chatMessages;
@@ -26,26 +28,50 @@ class MessageProvider extends ChangeNotifier {
   String get error => _error;
 
   void initSocket(String userId) {
-    socketService.connect('http://10.0.2.2:5000', userId);
+    if (_isSocketInitialized) return;
+    _isSocketInitialized = true;
+    
+    socketService.connect(AppConfig.baseUrl, userId);
     
     socketService.messageStream.listen((data) {
       if (data != null) {
         final newMessage = ChatMessageModel.fromJson(data);
-        // Only add if it's for the current conversation being viewed
-        // In a more complex app, we'd handle background updates for other conversations too
         if (_chatMessages.isNotEmpty && _chatMessages.first.conversationId == newMessage.conversationId) {
           if (!_chatMessages.any((m) => m.id == newMessage.id)) {
              _chatMessages.insert(0, newMessage);
              notifyListeners();
           }
         }
-        
-        // Update unread count in the conversation list
-        final index = _conversations.indexWhere((c) => c.id == newMessage.conversationId);
-        if (index != -1) {
-           loadConversations(); // Simplest way to refresh the list state
-        }
+        loadConversations();
       }
+    });
+
+    socketService.deleteStream.listen((data) {
+      final messageId = data['messageId'];
+      final type = data['type'];
+      final deletedByUserId = data['userId'];
+      final conversationId = data['conversationId'];
+
+      if (type == 'everyone') {
+        final index = _chatMessages.indexWhere((m) => m.id == messageId);
+        if (index != -1) {
+          final oldMsg = _chatMessages[index];
+          _chatMessages[index] = ChatMessage(
+            id: oldMsg.id,
+            conversationId: oldMsg.conversationId,
+            senderId: oldMsg.senderId,
+            content: 'This message was removed',
+            createdAt: oldMsg.createdAt,
+            isDeletedEveryone: true,
+            type: 'text',
+          );
+          notifyListeners();
+        }
+      } else if (type == 'me' && deletedByUserId == socketService.userId) {
+        _chatMessages.removeWhere((m) => m.id == messageId);
+        notifyListeners();
+      }
+      loadConversations();
     });
 
     socketService.callStream.listen((data) {
@@ -56,6 +82,8 @@ class MessageProvider extends ChangeNotifier {
           sl<CallService>().handleAnswer(data['ans']);
        } else if (event == 'peer:ice:candidate') {
           sl<CallService>().handleIceCandidate(data['candidate']);
+       } else if (event == 'call:rejected') {
+          sl<CallService>().hangUp();
        }
     });
   }
@@ -105,7 +133,7 @@ class MessageProvider extends ChangeNotifier {
         _chatMessages = list;
         _isLoading = false;
         notifyListeners();
-        repository.markAsRead(conversationId);
+        repository.markAsRead(conversationId).then((_) => getUnreadCount());
       },
     );
   }
@@ -115,8 +143,10 @@ class MessageProvider extends ChangeNotifier {
     result.fold(
       (failure) => null,
       (msg) {
-        _chatMessages.insert(0, msg); // Insert at 0 because of reverse list
-        notifyListeners();
+        if (!_chatMessages.any((m) => m.id == msg.id)) {
+          _chatMessages.insert(0, msg);
+          notifyListeners();
+        }
       },
     );
   }
@@ -126,10 +156,17 @@ class MessageProvider extends ChangeNotifier {
     result.fold(
       (failure) => null,
       (msg) {
-        _chatMessages.insert(0, msg);
-        notifyListeners();
+        if (!_chatMessages.any((m) => m.id == msg.id)) {
+          _chatMessages.insert(0, msg);
+          notifyListeners();
+        }
       },
     );
+  }
+  
+  // Also updating the socket listener prefix check for safety
+  void _attachSocketListeners(String userId) {
+    // ... logic already inside initSocket ...
   }
 
   Future<void> getUnreadCount() async {
@@ -145,12 +182,11 @@ class MessageProvider extends ChangeNotifier {
 
   Future<Conversation?> getOrCreateConversation(String targetUserId) async {
     // Check if conversation already exists in local list
-    final existing = _conversations.firstWhere(
-      (c) => c.id == targetUserId || c.participantUsername == targetUserId, // Simple check if targetUserId happens to be a username or id match
-      orElse: () => Conversation(id: '', participantId: '', participantName: '', participantUsername: '', participantAvatar: '', lastMessage: '', lastMessageTime: DateTime.now()),
-    );
-    
-    // In reality, we should check by participant ID. Since Conversation entity doesn't have participantId, we rely on the backend to handle it.
+    for (final conv in _conversations) {
+       if (conv.participantId == targetUserId || conv.participantUsername == targetUserId) {
+         return conv;
+       }
+    }
     
     _isLoading = true;
     notifyListeners();
@@ -171,6 +207,34 @@ class MessageProvider extends ChangeNotifier {
         _isLoading = false;
         notifyListeners();
         return conversation;
+      },
+    );
+  }
+
+  Future<void> deleteMessage(String messageId, String type) async {
+    final result = await repository.deleteMessage(messageId, type);
+    result.fold(
+      (failure) => null, // Handle error if needed
+      (_) {
+        if (type == 'me') {
+          _chatMessages.removeWhere((m) => m.id == messageId);
+        } else {
+          final index = _chatMessages.indexWhere((m) => m.id == messageId);
+          if (index != -1) {
+            final oldMsg = _chatMessages[index];
+            _chatMessages[index] = ChatMessage(
+              id: oldMsg.id,
+              conversationId: oldMsg.conversationId,
+              senderId: oldMsg.senderId,
+              content: 'This message was removed',
+              createdAt: oldMsg.createdAt,
+              isDeletedEveryone: true,
+              type: 'text',
+            );
+          }
+        }
+        notifyListeners();
+        loadConversations();
       },
     );
   }
