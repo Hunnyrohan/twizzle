@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
 import 'package:twizzle/core/services/call_service.dart';
+import 'package:twizzle/core/utils/media_utils.dart';
 import 'package:twizzle/injection_container.dart';
 
 class CallScreen extends StatefulWidget {
@@ -13,6 +14,11 @@ class CallScreen extends StatefulWidget {
   final bool isVideo;
   final bool isIncoming;
   final Map<String, dynamic>? offerData;
+  // Caller's own info — sent to the remote side so they see the right name/avatar
+  final String? callerName;
+  final String? callerImage;
+  final bool callerIsVerified;
+  final String? conversationId;
 
   const CallScreen({
     Key? key,
@@ -22,6 +28,10 @@ class CallScreen extends StatefulWidget {
     this.isVideo = true,
     this.isIncoming = false,
     this.offerData,
+    this.callerName,
+    this.callerImage,
+    this.callerIsVerified = false,
+    this.conversationId,
   }) : super(key: key);
 
   @override
@@ -34,13 +44,26 @@ class _CallScreenState extends State<CallScreen> {
   bool _isCameraOff = false;
 
   bool _remoteVideoReceived = false;
+  bool _isRinging = false;
 
   @override
   void initState() {
     super.initState();
     _callService.remoteRenderer.addListener(_onRendererStateChange);
     _callService.localRenderer.addListener(_onRendererStateChange);
-    _startCall();
+    // When the remote side accepts our call, update the UI
+    _callService.onCallAccepted = () {
+      if (mounted) setState(() {});
+    };
+    _callService.onCallEnded = () {
+      if (mounted) Navigator.of(context).pop();
+    };
+    
+    if (widget.isIncoming) {
+      _isRinging = true;
+    } else {
+      _startCall();
+    }
   }
 
   void _onRendererStateChange() {
@@ -57,15 +80,30 @@ class _CallScreenState extends State<CallScreen> {
   void _startCall() async {
     if (widget.isIncoming && widget.offerData != null) {
       await _callService.acceptCall(widget.targetUserId, widget.offerData!, widget.isVideo);
+      if (mounted) setState(() => _isRinging = false);
     } else {
-      await _callService.makeCall(widget.targetUserId, widget.isVideo);
+      await _callService.makeCall(
+        widget.targetUserId,
+        widget.isVideo,
+        callerName: widget.callerName,
+        callerImage: widget.callerImage,
+        isVerified: widget.callerIsVerified,
+        conversationId: widget.conversationId,
+      );
     }
     if (mounted) setState(() {});
   }
 
+  void _acceptIncomingCall() {
+    _startCall();
+  }
+
+  void _declineIncomingCall() {
+     _callService.handleReject(widget.targetUserId); 
+  }
+
   void _hangUp() {
-    _callService.hangUp();
-    if (mounted) Navigator.pop(context);
+    _callService.hangUp(targetUserId: widget.targetUserId);
   }
 
   void _toggleMute() {
@@ -83,6 +121,7 @@ class _CallScreenState extends State<CallScreen> {
   void dispose() {
     _callService.remoteRenderer.removeListener(_onRendererStateChange);
     _callService.localRenderer.removeListener(_onRendererStateChange);
+    _callService.onCallAccepted = null;
     super.dispose();
   }
 
@@ -129,11 +168,15 @@ class _CallScreenState extends State<CallScreen> {
                          ),
                          child: CircleAvatar(
                            radius: 80,
+                           backgroundColor: const Color(0xff1da1f2).withOpacity(0.1),
                            backgroundImage: widget.targetUserAvatar != null && widget.targetUserAvatar!.isNotEmpty
-                               ? NetworkImage(widget.targetUserAvatar!)
+                               ? NetworkImage(MediaUtils.resolveImageUrl(widget.targetUserAvatar!))
                                : null,
                            child: widget.targetUserAvatar == null || widget.targetUserAvatar!.isEmpty
-                               ? Text(widget.targetUserName[0], style: const TextStyle(fontSize: 40))
+                               ? Text(
+                                   widget.targetUserName.isNotEmpty ? widget.targetUserName[0].toUpperCase() : '?',
+                                   style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                                 )
                                : null,
                          ),
                        ).animate().scale(duration: 800.ms, curve: Curves.elasticOut).fadeIn(),
@@ -144,7 +187,7 @@ class _CallScreenState extends State<CallScreen> {
                        ).animate().fadeIn(delay: 200.ms),
                        const SizedBox(height: 8),
                        Text(
-                         !_remoteVideoReceived ? 'Connecting...' : (widget.isVideo ? 'Video Calling...' : 'Audio Calling...'),
+                         _getStatusText(),
                          style: const TextStyle(color: Colors.white70, fontSize: 18),
                        ).animate().fadeIn(delay: 400.ms),
                      ],
@@ -189,8 +232,13 @@ class _CallScreenState extends State<CallScreen> {
                 children: [
                   CircleAvatar(
                     radius: 20,
+                    backgroundColor: Colors.white10,
                     backgroundImage: widget.targetUserAvatar != null && widget.targetUserAvatar!.isNotEmpty
-                        ? NetworkImage(widget.targetUserAvatar!)
+                        ? NetworkImage(MediaUtils.resolveImageUrl(widget.targetUserAvatar!))
+                        : null,
+                    child: widget.targetUserAvatar == null || widget.targetUserAvatar!.isEmpty
+                        ? Text(widget.targetUserName.isNotEmpty ? widget.targetUserName[0].toUpperCase() : '?', 
+                            style: const TextStyle(color: Colors.white, fontSize: 12))
                         : null,
                   ),
                   const SizedBox(width: 12),
@@ -229,34 +277,49 @@ class _CallScreenState extends State<CallScreen> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _actionButton(
-                        icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                        isActive: _isMuted,
-                        onPressed: _toggleMute,
-                      ),
-                      _actionButton(
-                        icon: Icons.switch_camera_rounded,
-                        onPressed: _switchCamera,
-                      ),
-                      _circularButton(
-                        icon: Icons.call_end_rounded,
-                        color: Colors.redAccent.withOpacity(0.9),
-                        onPressed: _hangUp,
-                        size: 70,
-                      ),
-                      if (widget.isVideo)
-                        _actionButton(
-                          icon: _isCameraOff ? Icons.videocam_off_rounded : Icons.videocam_rounded,
-                          isActive: _isCameraOff,
-                          onPressed: () {
-                             setState(() => _isCameraOff = !_isCameraOff);
-                             _callService.localRenderer.srcObject?.getVideoTracks().forEach((track) {
-                               track.enabled = !_isCameraOff;
-                             });
-                          },
-                        ),
-                    ],
+                    children: _isRinging 
+                      ? [
+                          _circularButton(
+                            icon: Icons.call_end_rounded,
+                            color: Colors.redAccent.withOpacity(0.9),
+                            onPressed: _declineIncomingCall,
+                            size: 70,
+                          ),
+                          _circularButton(
+                            icon: Icons.call_rounded,
+                            color: Colors.green.withOpacity(0.9),
+                            onPressed: _acceptIncomingCall,
+                            size: 70,
+                          ),
+                        ]
+                      : [
+                          _actionButton(
+                            icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                            isActive: _isMuted,
+                            onPressed: _toggleMute,
+                          ),
+                          _actionButton(
+                            icon: Icons.switch_camera_rounded,
+                            onPressed: _switchCamera,
+                          ),
+                          _circularButton(
+                            icon: Icons.call_end_rounded,
+                            color: Colors.redAccent.withOpacity(0.9),
+                            onPressed: _hangUp,
+                            size: 70,
+                          ),
+                          if (widget.isVideo)
+                            _actionButton(
+                              icon: _isCameraOff ? Icons.videocam_off_rounded : Icons.videocam_rounded,
+                              isActive: _isCameraOff,
+                              onPressed: () {
+                                 setState(() => _isCameraOff = !_isCameraOff);
+                                 _callService.localRenderer.srcObject?.getVideoTracks().forEach((track) {
+                                   track.enabled = !_isCameraOff;
+                                 });
+                              },
+                            ),
+                        ],
                   ),
                 ),
               ),
@@ -265,6 +328,18 @@ class _CallScreenState extends State<CallScreen> {
         ],
       ),
     );
+  }
+
+  String _getStatusText() {
+    if (_isRinging) return 'Incoming Call...';
+    
+    // For audio calls, once we aren't ringing and are accepted, we're active
+    if (!widget.isVideo) return 'Audio Active';
+    
+    // For video calls, wait for remote track
+    if (_remoteVideoReceived) return 'Video Active';
+    
+    return 'Connecting...';
   }
 
   Widget _actionButton({required IconData icon, bool isActive = false, required VoidCallback onPressed}) {
