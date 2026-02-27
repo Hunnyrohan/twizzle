@@ -11,3 +11,7 @@ class ServerFailure extends Failure {
 class CacheFailure extends Failure {
   const CacheFailure([String message = 'Cache Error']) : super(message);
 }
+
+class DeactivatedAccountFailure extends Failure {
+  const DeactivatedAccountFailure(super.message);
+}
