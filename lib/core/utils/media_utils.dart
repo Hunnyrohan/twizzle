@@ -1,15 +1,28 @@
+import 'package:twizzle/core/config/app_config.dart';
+
 class MediaUtils {
-  static const String _imageBaseUrl = 'http://10.0.2.2:5000/uploads/';
+  static String get _imageBaseUrl => AppConfig.uploadsUrl;
 
   static String resolveImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     
-    // If it's already a full URL (but check for localhost)
+    // If it's already a full URL or relative path starting with http/https
     if (path.startsWith('http')) {
-      return path.replaceAll('localhost', '10.0.2.2');
+      // Replace any old emulator or localhost references with the real server IP
+      return path
+          .replaceAll('localhost', AppConfig.serverIp)
+          .replaceAll('10.0.2.2', AppConfig.serverIp);
     }
     
-    // If it's just a filename
-    return '$_imageBaseUrl$path';
+    // Remove leading slash if exists
+    String cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    // If path already contains uploads/, don't prepend it again
+    if (cleanPath.startsWith('uploads/')) {
+      return '${AppConfig.baseUrl}/$cleanPath';
+    }
+    
+    // Otherwise prepend the full base path
+    return '$_imageBaseUrl$cleanPath';
   }
 }
