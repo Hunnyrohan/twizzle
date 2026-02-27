@@ -29,6 +29,10 @@ class SearchRepositoryImpl implements SearchRepository {
         if (filter == 'people') {
           return UserModel.fromJson(item);
         } else {
+          // Check if it's a user (has username, no content) or a tweet
+          if (item['username'] != null && item['content'] == null) {
+            return UserModel.fromJson(item);
+          }
           return TweetModel.fromJson(item);
         }
       }).toList();
