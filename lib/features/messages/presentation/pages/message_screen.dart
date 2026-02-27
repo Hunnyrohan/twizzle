@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twizzle/features/messages/presentation/providers/message_provider.dart';
@@ -67,9 +68,14 @@ class _MessageScreenState extends State<MessageScreen> {
                           ],
                         ),
                       )
-                    : ListView.builder(
+                    : ListView.separated(
                         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + kToolbarHeight),
                         itemCount: provider.conversations.length,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1, 
+                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
+                          indent: 85,
+                        ),
                         itemBuilder: (context, index) {
                           final conversation = provider.conversations[index];
                           return InkWell(
@@ -82,51 +88,91 @@ class _MessageScreenState extends State<MessageScreen> {
                               );
                             },
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 28,
-                                    backgroundImage: conversation.participantAvatar.isNotEmpty
-                                        ? NetworkImage(MediaUtils.resolveImageUrl(conversation.participantAvatar))
-                                        : null,
-                                    child: conversation.participantAvatar.isEmpty
-                                        ? Text(conversation.participantName.isNotEmpty
-                                            ? conversation.participantName[0]
-                                            : '?', style: const TextStyle(fontSize: 20))
-                                        : null,
+                                  // Profile Avatar with Navigation
+                                  GestureDetector(
+                                    onTap: () => Navigator.pushNamed(context, '/profile', arguments: conversation.participantUsername),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 28,
+                                        backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
+                                        backgroundImage: conversation.participantAvatar.isNotEmpty
+                                            ? NetworkImage(MediaUtils.resolveImageUrl(conversation.participantAvatar))
+                                            : null,
+                                        child: conversation.participantAvatar.isEmpty
+                                            ? Text(
+                                                conversation.participantName.isNotEmpty
+                                                    ? conversation.participantName[0].toUpperCase()
+                                                    : '?',
+                                                style: TextStyle(
+                                                  fontSize: 20, 
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDark ? Colors.white : Colors.black87
+                                                ),
+                                              )
+                                            : null,
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                conversation.participantName,
-                                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-                                                overflow: TextOverflow.ellipsis,
+                                        // Header Row: Name & Username
+                                        GestureDetector(
+                                          onTap: () => Navigator.pushNamed(context, '/profile', arguments: conversation.participantUsername),
+                                          behavior: HitTestBehavior.opaque,
+                                          child: Row(
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  conversation.participantName,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w800, 
+                                                    fontSize: 16,
+                                                    color: isDark ? Colors.white : Colors.black,
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
-                                            ),
-                                            if (conversation.participantIsVerified) ...[
+                                              if (conversation.participantIsVerified) ...[
+                                                const SizedBox(width: 4),
+                                                const VerifiedBadge(size: 14),
+                                              ],
                                               const SizedBox(width: 4),
-                                              const VerifiedBadge(size: 14),
+                                              Text(
+                                                '@${conversation.participantUsername}',
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade500, 
+                                                  fontSize: 14, 
+                                                  fontWeight: FontWeight.w400
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              Text(
+                                                _getTime(conversation.lastMessageTime),
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade500, 
+                                                  fontSize: 13,
+                                                  fontWeight: conversation.unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                                                ),
+                                              ),
                                             ],
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '@${conversation.participantUsername}',
-                                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                                            ),
-                                            const Spacer(),
-                                            Text(
-                                              _getTime(conversation.lastMessageTime),
-                                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                                            ),
-                                          ],
+                                          ),
                                         ),
-                                        const SizedBox(height: 2),
+                                        const SizedBox(height: 4),
+                                        // Message Preview Row
                                         Row(
                                           children: [
                                             Expanded(
@@ -137,23 +183,28 @@ class _MessageScreenState extends State<MessageScreen> {
                                                 style: TextStyle(
                                                   color: conversation.unreadCount > 0 
                                                       ? (isDark ? Colors.white : Colors.black87) 
-                                                      : Colors.grey.shade600,
-                                                  fontWeight: conversation.unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
-                                                  fontSize: 14,
+                                                      : Colors.grey.shade500,
+                                                  fontWeight: conversation.unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                                                  fontSize: 15,
+                                                  letterSpacing: -0.2,
                                                 ),
                                               ),
                                             ),
                                             if (conversation.unreadCount > 0)
                                               Container(
                                                 margin: const EdgeInsets.only(left: 8),
-                                                padding: const EdgeInsets.all(6),
-                                                decoration: const BoxDecoration(
-                                                  color: Color(0xff1DA1F2),
-                                                  shape: BoxShape.circle,
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xff1DA1F2),
+                                                  borderRadius: BorderRadius.circular(12),
                                                 ),
                                                 child: Text(
                                                   '${conversation.unreadCount}',
-                                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                                  style: const TextStyle(
+                                                    color: Colors.white, 
+                                                    fontSize: 11, 
+                                                    fontWeight: FontWeight.w900
+                                                  ),
                                                 ),
                                               ),
                                           ],
@@ -181,11 +232,17 @@ class _MessageScreenState extends State<MessageScreen> {
 
   String _getTime(DateTime dateTime) {
     final now = DateTime.now();
-    final difference = now.difference(dateTime);
-    if (difference.inDays > 7) return '${dateTime.day}/${dateTime.month}/${dateTime.year.toString().substring(2)}';
-    if (difference.inDays > 0) return '${difference.inDays}d';
-    if (difference.inHours > 0) return '${difference.inHours}h';
-    if (difference.inMinutes > 0) return '${difference.inMinutes}m';
-    return 'now';
+    final localDateTime = dateTime.toLocal();
+    final difference = now.difference(localDateTime);
+    
+    if (localDateTime.year == now.year && localDateTime.month == now.month && localDateTime.day == now.day) {
+      return DateFormat('h:mm a').format(localDateTime);
+    }
+    
+    if (difference.inDays < 7) {
+      return DateFormat('E').format(localDateTime); // Mon, Tue, etc.
+    }
+    
+    return DateFormat('MMM d').format(localDateTime); // Jan 26, etc.
   }
 }
