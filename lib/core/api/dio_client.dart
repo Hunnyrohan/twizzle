@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:hive/hive.dart';
+import 'package:twizzle/core/config/app_config.dart';
 
 class DioClient {
-  static const String _baseUrl = 'http://10.0.2.2:5000/api'; // Base API URL
+  static const String _baseUrl = AppConfig.baseApiUrl; // Base API URL
 
   final Dio _dio;
 
