@@ -12,6 +12,11 @@ class UserNotification {
   final String? tweetId;
   final DateTime createdAt;
   final bool isRead;
+  
+  // Rich preview fields
+  final String? postPreviewContent;
+  final String? postPreviewImage;
+  final String? commentText;
 
   UserNotification({
     required this.id,
@@ -25,6 +30,9 @@ class UserNotification {
     this.tweetId,
     required this.createdAt,
     this.isRead = false,
+    this.postPreviewContent,
+    this.postPreviewImage,
+    this.commentText,
   });
 
 }
