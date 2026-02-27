@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'socket_service.dart';
@@ -16,6 +17,12 @@ class CallService {
   final List<RTCIceCandidate> _remoteCandidatesQueue = [];
   bool _isRemoteDescriptionSet = false;
   bool _isInitialized = false;
+
+  VoidCallback? onCallAccepted;
+  VoidCallback? onCallEnded;
+
+  /// Returns true if a call is currently active or being established.
+  bool get isInCall => _peerConnection != null || _localStream != null;
 
   CallService({required this.socketService});
 
@@ -77,7 +84,17 @@ class CallService {
     }
   }
 
-  Future<void> makeCall(String targetUserId, bool video) async {
+  String? _currentTargetUserId;
+
+  Future<void> makeCall(
+    String targetUserId,
+    bool video, {
+    String? callerName,
+    String? callerImage,
+    bool isVerified = false,
+    String? conversationId,
+  }) async {
+    _currentTargetUserId = targetUserId;
     await initLocalStream(video);
     await _setupPeerConnection(targetUserId);
 
@@ -88,10 +105,15 @@ class CallService {
       'to': targetUserId,
       'offer': offer.toMap(),
       'callType': video ? 'video' : 'audio',
+      'callerName': callerName ?? 'Unknown User',
+      'callerImage': callerImage,
+      'isVerified': isVerified,
+      'conversationId': conversationId,
     });
   }
 
   Future<void> acceptCall(String targetUserId, Map<String, dynamic> offerData, bool video) async {
+    _currentTargetUserId = targetUserId;
     await initLocalStream(video);
     await _setupPeerConnection(targetUserId);
 
@@ -127,7 +149,15 @@ class CallService {
         await _peerConnection!.addCandidate(candidate);
       }
       _remoteCandidatesQueue.clear();
+
+      // Notify CallScreen that the call is now connected
+      onCallAccepted?.call();
     }
+  }
+
+  void handleReject(String targetUserId) {
+    socketService.emit('call:rejected', {'to': targetUserId});
+    hangUp(targetUserId: targetUserId);
   }
 
   Future<void> handleIceCandidate(Map<String, dynamic> candidateData) async {
@@ -146,17 +176,24 @@ class CallService {
     }
   }
 
-  void hangUp() {
+  void hangUp({String? targetUserId}) {
+    final to = targetUserId ?? _currentTargetUserId;
+    if (to != null) {
+      socketService.emit('call:rejected', {'to': to});
+    }
+
     _localStream?.getTracks().forEach((track) => track.stop());
     _localStream?.dispose();
     _peerConnection?.close();
     _peerConnection = null;
     _localStream = null;
     _remoteStream = null;
+    _currentTargetUserId = null;
     _isRemoteDescriptionSet = false;
     _remoteCandidatesQueue.clear();
     localRenderer.srcObject = null;
     remoteRenderer.srcObject = null;
+    onCallEnded?.call();
   }
 
   Future<void> switchCamera() async {
