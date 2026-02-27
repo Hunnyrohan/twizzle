@@ -12,8 +12,10 @@ class NotificationModel extends UserNotification {
     super.authorIsVerified = false,
     super.tweetId,
     required super.createdAt,
-
     super.isRead = false,
+    super.postPreviewContent,
+    super.postPreviewImage,
+    super.commentText,
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
@@ -47,11 +49,13 @@ class NotificationModel extends UserNotification {
       authorAvatar: actor['image'] as String? ?? actor['avatar'] as String? ?? '',
       authorIsVerified: actor['isVerified'] as bool? ?? false,
       tweetId: tweetId,
-
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt'] as String) 
           : DateTime.now(),
       isRead: json['isRead'] as bool? ?? false,
+      postPreviewContent: postPreview?['content'] as String?,
+      postPreviewImage: postPreview?['image'] as String?,
+      commentText: json['commentText'] as String?,
     );
   }
 }
