@@ -16,19 +16,13 @@ class PaymentService {
     }
   }
 
-  // Confirm Verification
-  Future<Map<String, dynamic>> confirmVerification({
-    required String pid,
-    required String refId,
-    required double amt,
-  }) async {
+  // Confirm Verification (eSewa v2)
+  Future<Map<String, dynamic>> confirmVerificationV2(String data) async {
     try {
       final response = await _client.get(
         '/payments/esewa/verification/confirm',
         queryParameters: {
-          'pid': pid,
-          'refId': refId,
-          'amt': amt,
+          'data': data,
         },
       );
       return response.data;

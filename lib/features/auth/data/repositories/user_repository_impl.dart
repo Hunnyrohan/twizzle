@@ -30,18 +30,20 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(res['message'] ?? 'Registration failed'));
       }
     } on DioException catch (e) {
-      return Left(
-        ServerFailure(e.response?.data['message'] ?? 'Registration failed'),
-      );
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Registration failed')));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, User>> loginUser(String identifier, String password) async {
+  Future<Either<Failure, User>> loginUser(String identifier, String password, {bool confirmReactivate = false}) async {
     try {
-      final res = await remote.login(identifier, password);
+      final res = await remote.login(identifier, password, confirmReactivate: confirmReactivate);
+
+      if (res['needsReactivation'] == true) {
+        return Left(DeactivatedAccountFailure(res['message'] ?? 'Account deactivated'));
+      }
 
       if (res['success'] == true && res['data'] != null) {
         final data = res['data'] as Map<String, dynamic>;
@@ -54,7 +56,11 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(res['message'] ?? 'Login failed'));
       }
     } on DioException catch (e) {
-      return Left(ServerFailure(e.response?.data['message'] ?? 'Login failed'));
+      final data = e.response?.data;
+      if (data is Map && data['needsReactivation'] == true) {
+        return Left(DeactivatedAccountFailure(data['message'] ?? 'Account deactivated'));
+      }
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Login failed')));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -63,9 +69,43 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Either<Failure, User?>> getCurrentUser() async {
     try {
-      return Right(await local.getUser());
+      final localUser = await local.getUser();
+      
+      final res = await remote.getMe();
+      if (res['success'] == true && res['data'] != null) {
+        final data = res['data'] as Map<String, dynamic>;
+        
+        if (localUser is UserModel) {
+          final updatedUser = UserModel.fromJson(data, localUser.password).copyWith(
+            token: localUser.token,
+          );
+          await local.saveUser(updatedUser);
+          return Right(updatedUser);
+        } else {
+          final user = UserModel.fromJson(data);
+          await local.saveUser(user);
+          return Right(user);
+        }
+      }
+      
+      return Right(localUser);
+    } on DioException catch (e) {
+      // ONLY fallback to local user if it's a network/connection issue.
+      // If it's a 401 or 404, it means the token/user is NOT valid on THIS server.
+      if (e.type == DioExceptionType.connectionError || 
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        final localUser = await local.getUser();
+        return Right(localUser);
+      }
+      
+      // For 401/404/etc., don't fallback to a potentially stale local user.
+      // Clear the local user to force a fresh login if the session is invalid on THIS server.
+      await local.clearUser();
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Session expired')));
     } catch (e) {
-      return Left(CacheFailure());
+      return Left(ServerFailure(e.toString()));
     }
   }
 
@@ -98,9 +138,13 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<Either<Failure, User>> googleLogin(String idToken) async {
+  Future<Either<Failure, User>> googleLogin(String idToken, {bool confirmReactivate = false}) async {
     try {
-      final res = await remote.googleLogin(idToken);
+      final res = await remote.googleLogin(idToken, confirmReactivate: confirmReactivate);
+
+      if (res['needsReactivation'] == true) {
+        return Left(DeactivatedAccountFailure(res['message'] ?? 'Account deactivated'));
+      }
 
       if (res['success'] == true && res['data'] != null) {
         final data = res['data'] as Map<String, dynamic>;
@@ -112,7 +156,11 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(res['message'] ?? 'Google login failed'));
       }
     } on DioException catch (e) {
-      return Left(ServerFailure(e.response?.data['message'] ?? 'Google login failed'));
+      final data = e.response?.data;
+      if (data is Map && data['needsReactivation'] == true) {
+        return Left(DeactivatedAccountFailure(data['message'] ?? 'Account deactivated'));
+      }
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Google login failed')));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -128,7 +176,7 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(res['message'] ?? 'User not found'));
       }
     } on DioException catch (e) {
-      return Left(ServerFailure(e.response?.data['message'] ?? 'User not found'));
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'User not found')));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -144,7 +192,7 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(res['message'] ?? 'Follow action failed'));
       }
     } on DioException catch (e) {
-      return Left(ServerFailure(e.response?.data['message'] ?? 'Follow action failed'));
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Follow action failed')));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -198,7 +246,7 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(res['message'] ?? 'Update failed'));
       }
     } on DioException catch (e) {
-      return Left(ServerFailure(e.response?.data['message'] ?? 'Update failed'));
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Update failed')));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -242,5 +290,105 @@ class UserRepositoryImpl implements UserRepository {
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> toggleBlock(String userId) async {
+    try {
+      final res = await remote.toggleBlock(userId);
+      if (res['success'] == true) {
+        return const Right(unit);
+      } else {
+        return Left(ServerFailure(res['message'] ?? 'Block action failed'));
+      }
+    } on DioException catch (e) {
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Block action failed')));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<User>>> getBlocks() async {
+    try {
+      final res = await remote.getBlocks();
+      if (res['success'] == true && res['data'] != null) {
+        final List data = res['data'] as List;
+        return Right(data.map((u) => UserModel.fromJson(u)).toList());
+      } else {
+        return Left(ServerFailure(res['message'] ?? 'Failed to get blocked users'));
+      }
+    } on DioException catch (e) {
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Failed to get blocked users')));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> changePassword(String currentPassword, String newPassword) async {
+    try {
+      final res = await remote.changePassword(currentPassword, newPassword);
+      if (res['success'] == true) {
+        return const Right(unit);
+      } else {
+        return Left(ServerFailure(res['message'] ?? 'Failed to change password'));
+      }
+    } on DioException catch (e) {
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Failed to change password')));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deactivateAccount() async {
+    try {
+      final res = await remote.deactivateAccount();
+      if (res['success'] == true) {
+        await local.clearUser();
+        return const Right(unit);
+      } else {
+        return Left(ServerFailure(res['message'] ?? 'Failed to deactivate account'));
+      }
+    } on DioException catch (e) {
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Failed to deactivate account')));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> logoutAllSessions() async {
+    try {
+      final res = await remote.logoutAllSessions();
+      if (res['success'] == true) {
+        await local.clearUser();
+        return const Right(unit);
+      } else {
+        return Left(ServerFailure(res['message'] ?? 'Failed to logout from all sessions'));
+      }
+    } on DioException catch (e) {
+      return Left(ServerFailure(_getErrorMessage(e, defaultMessage: 'Failed to logout from all sessions')));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  String _getErrorMessage(DioException e, {required String defaultMessage}) {
+    final data = e.response?.data;
+    if (data is Map) {
+      return data['message'] ?? data['error'] ?? defaultMessage;
+    }
+    if (data is String && data.isNotEmpty) {
+      if (data.contains('ERR_NGROK_3200') || data.contains('offline')) {
+        return 'Backend is offline. Please check your ngrok/server.';
+      }
+      return data.length > 100 ? data.substring(0, 100) : data;
+    }
+    if (e.type == DioExceptionType.connectionError || e.type == DioExceptionType.connectionTimeout) {
+      return 'Cannot connect to server. Check your internet or server IP.';
+    }
+    return e.message ?? defaultMessage;
   }
 }

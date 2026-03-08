@@ -1,5 +1,7 @@
+import 'package:equatable/equatable.dart';
+
 // lib/features/auth/domain/entities/user.dart
-class User {
+class User extends Equatable {
   final String id;
   final String name;
   final String username;
@@ -39,4 +41,26 @@ class User {
     this.isVerified = false,
     this.verifiedAt,
   });
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+        username,
+        email,
+        password,
+        token,
+        image,
+        bio,
+        location,
+        website,
+        coverImage,
+        joinedAt,
+        isFollowing,
+        isSelf,
+        followersCount,
+        followingCount,
+        isVerified,
+        verifiedAt,
+      ];
 }

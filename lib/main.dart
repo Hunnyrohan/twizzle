@@ -13,6 +13,7 @@ import 'package:twizzle/features/messages/presentation/providers/message_provide
 import 'package:twizzle/theme/theme_provider.dart';
 import 'package:twizzle/features/auth/domain/presentation/pages/onboarding_screen.dart';
 import 'package:twizzle/widgets/custom_bottom_nav.dart';
+import 'package:twizzle/widgets/biometric_wrapper.dart';
 import 'package:twizzle/features/auth/domain/presentation/pages/profile_screen.dart';
 import 'package:twizzle/features/tweets/presentation/pages/lists_screen.dart';
 import 'package:twizzle/features/tweets/presentation/pages/bookmarks_screen.dart';
@@ -24,11 +25,13 @@ import 'package:twizzle/features/auth/domain/presentation/pages/edit_profile_scr
 import 'package:twizzle/features/auth/domain/presentation/pages/forgot_password_screen.dart';
 import 'package:twizzle/features/auth/domain/presentation/pages/connections_screen.dart';
 import 'package:twizzle/features/settings/presentation/pages/settings_screen.dart';
+import 'package:twizzle/features/settings/presentation/pages/server_settings_screen.dart';
+import 'package:twizzle/features/settings/presentation/pages/blocked_accounts_screen.dart';
+import 'package:twizzle/features/tweets/presentation/pages/tweet_detail_screen.dart';
 import 'injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
   await di.init(); // Hive + DI
   runApp(
     MultiProvider(
@@ -129,6 +132,11 @@ class TwizzleApp extends StatelessWidget {
         '/bookmarks': (_) => const BookmarksScreen(),
         '/moments': (_) => const MomentsScreen(),
         '/settings': (_) => const SettingsScreen(),
+        '/server-settings': (_) => const ServerSettingsScreen(),
+        '/blocked-accounts': (_) => const BlockedAccountsScreen(),
+      },
+      builder: (context, child) {
+        return BiometricWrapper(child: child!);
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/profile') {
@@ -155,6 +163,12 @@ class TwizzleApp extends StatelessWidget {
               username: args['username'] as String,
               initialTabIndex: args['initialTabIndex'] as int? ?? 0,
             ),
+          );
+        }
+        if (settings.name == '/tweet-detail') {
+          final tweetId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => TweetDetailScreen(tweetId: tweetId),
           );
         }
         return null;

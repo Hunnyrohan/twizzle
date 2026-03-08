@@ -157,12 +157,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                         if (ok) {
                                           Navigator.pushReplacementNamed(context, '/home');
                                         } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              backgroundColor: Colors.redAccent,
-                                              content: Text(prov.error ?? 'Login failed'),
-                                            ),
-                                          );
+                                          if (prov.needsReactivation) {
+                                            _showReactivationDialog(context, _identifier.text, _pass.text);
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                backgroundColor: Colors.redAccent,
+                                                content: Text(prov.error ?? 'Login failed'),
+                                              ),
+                                            );
+                                          }
                                         }
                                       }
                                     },
@@ -267,6 +271,17 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+          Positioned(
+            top: 40,
+            right: 20,
+            child: SafeArea(
+              child: IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white70),
+                tooltip: 'Server Settings',
+                onPressed: () => Navigator.pushNamed(context, '/server-settings'),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -316,5 +331,42 @@ class _LoginScreenState extends State<LoginScreen> {
       validator: validator,
     );
   }
-}
 
+  void _showReactivationDialog(BuildContext context, String identifier, String password) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xff15202b),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Reactivate your account?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Your account is currently deactivated. Would you like to reactivate it and log in?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final prov = context.read<UserProvider>();
+              Navigator.pop(context); // Close dialog
+              
+              final success = await prov.loginUser(identifier, password, confirmReactivate: true);
+              if (success && mounted) {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xff1DA1F2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Yes, Reactivate', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}

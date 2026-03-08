@@ -19,7 +19,7 @@ class SearchRemoteSource {
     if (limit != null) queryParameters['limit'] = limit;
 
     final res = await _client.get(
-      '/search',
+      'search',
       queryParameters: queryParameters,
     );
     return res.data;

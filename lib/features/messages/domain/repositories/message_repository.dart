@@ -10,4 +10,5 @@ abstract class MessageRepository {
   Future<Either<Failure, int>> getUnreadCount();
   Future<Either<Failure, void>> markAsRead(String conversationId);
   Future<Either<Failure, Conversation>> startConversation(String userId);
+  Future<Either<Failure, void>> deleteMessage(String messageId, String type);
 }

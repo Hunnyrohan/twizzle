@@ -1,4 +1,6 @@
-class Tweet {
+import 'package:equatable/equatable.dart';
+
+class Tweet extends Equatable {
   final String id;
   final String content;
   final String authorId;
@@ -15,6 +17,7 @@ class Tweet {
   final bool isRetweeted;
   final bool isBookmarked;
   final Tweet? retweetOf;
+  final String? location; // Sensor 2: GPS Location
 
   Tweet({
     required this.id,
@@ -33,5 +36,27 @@ class Tweet {
     this.isRetweeted = false,
     this.isBookmarked = false,
     this.retweetOf,
+    this.location,
   });
+
+  @override
+  List<Object?> get props => [
+        id,
+        content,
+        authorId,
+        authorName,
+        authorUsername,
+        authorAvatar,
+        authorIsVerified,
+        media,
+        likesCount,
+        retweetsCount,
+        repliesCount,
+        createdAt,
+        isLiked,
+        isRetweeted,
+        isBookmarked,
+        retweetOf,
+        location,
+      ];
 }

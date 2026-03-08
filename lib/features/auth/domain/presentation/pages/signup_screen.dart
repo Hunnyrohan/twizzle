@@ -293,6 +293,17 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
           ),
+          Positioned(
+            top: 40,
+            right: 20,
+            child: SafeArea(
+              child: IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white70),
+                tooltip: 'Server Settings',
+                onPressed: () => Navigator.pushNamed(context, '/server-settings'),
+              ),
+            ),
+          ),
         ],
       ),
     );

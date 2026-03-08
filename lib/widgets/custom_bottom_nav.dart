@@ -10,7 +10,10 @@ import 'package:twizzle/features/tweets/presentation/pages/home_feed_screen.dart
 import 'package:twizzle/features/messages/presentation/pages/message_screen.dart';
 import 'package:twizzle/features/messages/presentation/pages/call_screen.dart';
 import 'package:twizzle/features/notifications/presentation/pages/notification_screen.dart';
+import 'package:twizzle/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:twizzle/features/search/presentation/pages/search_screen.dart';
+import 'package:twizzle/core/services/call_service.dart';
+import 'package:twizzle/injection_container.dart';
 
 class CustomBottomNav extends StatefulWidget {
   const CustomBottomNav({Key? key}) : super(key: key);
@@ -36,15 +39,18 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
         final msgProvider = context.read<MessageProvider>();
         msgProvider.initSocket(user.id);
         
+        // Load initial notification count
+        context.read<NotificationProvider>().getUnreadCount();
+        
         msgProvider.incomingCallStream.listen((callData) {
-          if (mounted) {
+          if (mounted && !sl<CallService>().isInCall) {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => CallScreen(
                   targetUserId: callData['from'],
                   targetUserName: callData['callerName'] ?? 'Unknown User',
-                  targetUserAvatar: callData['callerAvatar'],
+                  targetUserAvatar: callData['callerImage'],
                   isVideo: callData['callType'] == 'video',
                   isIncoming: true,
                   offerData: callData['offer'],
@@ -76,7 +82,12 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
             filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: BottomNavigationBar(
               currentIndex: _idx,
-              onTap: (i) => setState(() => _idx = i),
+              onTap: (i) {
+                setState(() => _idx = i);
+                if (i == 3) {
+                  context.read<MessageProvider>().loadConversations();
+                }
+              },
               type: BottomNavigationBarType.fixed,
               backgroundColor: Colors.transparent,
               selectedItemColor: Theme.of(context).colorScheme.primary,
@@ -84,7 +95,7 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
               showSelectedLabels: false,
               showUnselectedLabels: false,
               elevation: 0,
-              items: const [
+              items: [
                 BottomNavigationBarItem(
                   icon: Icon(Icons.home_outlined, size: 26),
                   activeIcon: Icon(Icons.home_filled, size: 28),
@@ -96,13 +107,49 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
                   label: 'Search',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.notifications_outlined, size: 26),
-                  activeIcon: Icon(Icons.notifications, size: 28),
+                  icon: Consumer<NotificationProvider>(
+                    builder: (context, provider, child) {
+                      return Badge(
+                        label: provider.unreadCount > 0 ? Text(provider.unreadCount.toString()) : null,
+                        isLabelVisible: provider.unreadCount > 0,
+                        child: const Icon(Icons.notifications_outlined, size: 26),
+                      );
+                    },
+                  ),
+                  activeIcon: Consumer<NotificationProvider>(
+                    builder: (context, provider, child) {
+                      return Badge(
+                        label: provider.unreadCount > 0 ? Text(provider.unreadCount.toString()) : null,
+                        isLabelVisible: provider.unreadCount > 0,
+                        child: const Icon(Icons.notifications, size: 28),
+                      );
+                    },
+                  ),
                   label: 'Notifications',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.mail_outline, size: 26),
-                  activeIcon: Icon(Icons.mail, size: 28),
+                  icon: Consumer<MessageProvider>(
+                    builder: (context, provider, child) {
+                      return Badge(
+                        label: provider.unreadCount > 0 
+                            ? Text(provider.unreadCount.toString()) 
+                            : null,
+                        isLabelVisible: provider.unreadCount > 0 && _idx != 3,
+                        child: const Icon(Icons.mail_outline, size: 26),
+                      );
+                    },
+                  ),
+                  activeIcon: Consumer<MessageProvider>(
+                    builder: (context, provider, child) {
+                      return Badge(
+                        label: provider.unreadCount > 0 
+                            ? Text(provider.unreadCount.toString()) 
+                            : null,
+                        isLabelVisible: provider.unreadCount > 0 && _idx != 3,
+                        child: const Icon(Icons.mail, size: 28),
+                      );
+                    },
+                  ),
                   label: 'Messages',
                 ),
               ],

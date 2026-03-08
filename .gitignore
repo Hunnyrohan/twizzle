@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Test and analysis outputs
+*_output.txt
+*_results*.txt
+test_output.txt
+analysis_*.txt
+analyze_*.txt
+critical_issues.txt
+
+# Firebase config (contains sensitive data)
+android/app/google-services.json

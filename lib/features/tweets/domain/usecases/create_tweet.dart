@@ -8,7 +8,7 @@ class CreateTweet {
 
   CreateTweet(this.repository);
 
-  Future<Either<Failure, Tweet>> call(String content, {List<String> mediaPaths = const []}) async {
-    return await repository.createTweet(content, mediaPaths);
+  Future<Either<Failure, Tweet>> call(String content, {List<String> mediaPaths = const [], String? location}) async {
+    return await repository.createTweet(content, mediaPaths, location: location);
   }
 }

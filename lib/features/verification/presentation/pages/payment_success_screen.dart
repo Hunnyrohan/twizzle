@@ -6,15 +6,11 @@ import 'package:twizzle/injection_container.dart';
 
 
 class PaymentSuccessScreen extends StatefulWidget {
-  final String pid;
-  final String? refId;
-  final double? amt;
+  final String data;
 
   const PaymentSuccessScreen({
     super.key,
-    required this.pid,
-    this.refId,
-    this.amt,
+    required this.data,
   });
 
   @override
@@ -34,11 +30,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
 
   Future<void> _confirmPayment() async {
     try {
-      final res = await _paymentService.confirmVerification(
-        pid: widget.pid,
-        refId: widget.refId ?? '',
-        amt: widget.amt ?? 0,
-      );
+      final res = await _paymentService.confirmVerificationV2(widget.data);
 
       if (res['success'] == true) {
         if (mounted) {

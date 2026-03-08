@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart';
 import 'package:twizzle/core/error/failures.dart';
 import 'package:twizzle/features/auth/data/models/user_model.dart';
 import 'package:twizzle/features/tweets/data/models/tweet_model.dart';
@@ -38,8 +39,24 @@ class SearchRepositoryImpl implements SearchRepository {
       }).toList();
 
       return Right(items);
+    } on DioException catch (e) {
+      return Left(ServerFailure(_getErrorMessage(e)));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
+  }
+
+  String _getErrorMessage(DioException e) {
+    final data = e.response?.data;
+    if (data is Map) {
+      return data['message'] ?? data['error'] ?? 'Search failed';
+    }
+    if (data is String && data.isNotEmpty) {
+      if (data.contains('ERR_NGROK_3200') || data.contains('offline')) {
+        return 'Backend is offline. Please check your ngrok/server.';
+      }
+      return data.length > 100 ? data.substring(0, 100) : data;
+    }
+    return e.message ?? 'Search failed';
   }
 }

@@ -7,18 +7,30 @@ import 'package:twizzle/features/auth/data/models/user_model.dart';
 import 'package:twizzle/features/auth/domain/repositories/user_repository.dart';
 import 'package:twizzle/features/auth/domain/usecases/login_user.dart';
 import 'package:twizzle/features/auth/domain/usecases/register_user.dart';
+import 'package:twizzle/features/auth/domain/usecases/get_blocks.dart';
+import 'package:twizzle/core/error/failures.dart';
+import 'package:dartz/dartz.dart';
 
 class UserProvider with ChangeNotifier {
   final RegisterUser register;
   final LoginUser login;
+  final GetBlocks getBlocksUseCase;
   final UserRepository repo;
+  final GoogleSignIn _googleSignIn;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '789369635164-tt45901f8almobm2l19l7d344u3mmnt5.apps.googleusercontent.com',
+  UserProvider({
+    required this.register,
+    required this.login,
+    required this.getBlocksUseCase,
+    required this.repo,
+    GoogleSignIn? googleSignIn,
+  }) : _googleSignIn = googleSignIn ?? GoogleSignIn(
+    // Android Client ID from new Project (96306786076)
+    clientId: '96306786076-l0qqnj576hqrbi0nh95oo2nj5q6v1qm5.apps.googleusercontent.com', 
+    // Web Client ID (Web SDK) from new Project
+    serverClientId: '96306786076-4oq11o1ea1r4vsitbl509h1mc1912i43.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
-
-  UserProvider({required this.register, required this.login, required this.repo});
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -26,8 +38,14 @@ class UserProvider with ChangeNotifier {
   User? _user;
   User? get user => _user;
 
+  bool _needsReactivation = false;
+  bool get needsReactivation => _needsReactivation;
+
   String _error = '';
   String get error => _error;
+
+  List<User> _blockedUsers = [];
+  List<User> get blockedUsers => _blockedUsers;
 
   Future<bool> registerUser(User u) async {
     _isLoading = true; notifyListeners();
@@ -39,15 +57,39 @@ class UserProvider with ChangeNotifier {
     }, (_) => true);
   }
 
-  Future<bool> loginUser(String email, String password) async {
-    _isLoading = true; notifyListeners();
-    final res = await login(email, password);
-    _isLoading = false; notifyListeners();
+  Future<bool> loginUser(String email, String password, {bool confirmReactivate = false}) async {
+    _isLoading = true; 
+    _needsReactivation = false;
+    notifyListeners();
+    
+    final res = await login(email, password, confirmReactivate: confirmReactivate);
+    _isLoading = false; 
+    
     return res.fold((fail) {
       _error = fail.message;
+      if (fail is DeactivatedAccountFailure) {
+        _needsReactivation = true;
+      }
+      notifyListeners();
       return false;
     }, (u) {
       _user = u;
+      notifyListeners();
+      return true;
+    });
+  }
+
+  Future<bool> reactivateAccount() async {
+    _isLoading = true; notifyListeners();
+    final res = await repo.loginUser('', '', confirmReactivate: true); 
+    _isLoading = false;
+    return res.fold((fail) {
+      _error = fail.message;
+      notifyListeners();
+      return false;
+    }, (_) {
+      _needsReactivation = false;
+      notifyListeners();
       return true;
     });
   }
@@ -102,7 +144,11 @@ class UserProvider with ChangeNotifier {
 
   Future<bool> checkLoggedIn() async {
     final res = await repo.getCurrentUser();
-    return res.fold((_) => false, (u) {
+    return res.fold((fail) {
+      _error = fail.message;
+      notifyListeners();
+      return false;
+    }, (u) {
       _user = u;
       notifyListeners();
       return u != null;
@@ -182,6 +228,79 @@ class UserProvider with ChangeNotifier {
       if (_user != null) {
         _user = (_user as UserModel).copyWith(coverImage: url);
       }
+      notifyListeners();
+      return true;
+    });
+  }
+
+  Future<void> getBlockedUsers() async {
+    _isLoading = true;
+    notifyListeners();
+    final res = await getBlocksUseCase();
+    _isLoading = false;
+    res.fold(
+      (fail) => _error = fail.message,
+      (users) => _blockedUsers = users,
+    );
+    notifyListeners();
+  }
+
+  Future<bool> toggleBlock(String userId) async {
+    final res = await repo.toggleBlock(userId);
+    return res.fold(
+      (fail) {
+        _error = fail.message;
+        notifyListeners();
+        return false;
+      },
+      (_) {
+        // Refresh local block list if we're in the BlockedAccountsScreen context
+        _blockedUsers.removeWhere((u) => u.id == userId);
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    _isLoading = true; notifyListeners();
+    final res = await repo.changePassword(currentPassword, newPassword);
+    _isLoading = false;
+    return res.fold((fail) {
+      _error = fail.message;
+      notifyListeners();
+      return false;
+    }, (_) {
+      notifyListeners();
+      return true;
+    });
+  }
+
+  Future<bool> deactivateAccount() async {
+    _isLoading = true; notifyListeners();
+    final res = await repo.deactivateAccount();
+    _isLoading = false;
+    return res.fold((fail) {
+      _error = fail.message;
+      notifyListeners();
+      return false;
+    }, (_) {
+      _user = null;
+      notifyListeners();
+      return true;
+    });
+  }
+
+  Future<bool> logoutAllSessions() async {
+    _isLoading = true; notifyListeners();
+    final res = await repo.logoutAllSessions();
+    _isLoading = false;
+    return res.fold((fail) {
+      _error = fail.message;
+      notifyListeners();
+      return false;
+    }, (_) {
+      _user = null;
       notifyListeners();
       return true;
     });

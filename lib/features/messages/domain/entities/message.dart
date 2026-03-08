@@ -32,6 +32,7 @@ class ChatMessage {
   final String type; // 'text', 'image', 'call'
   final String? mediaUrl;
   final Map<String, dynamic>? callData;
+  final bool isDeletedEveryone;
 
   ChatMessage({
     required this.id,
@@ -43,5 +44,6 @@ class ChatMessage {
     this.type = 'text',
     this.mediaUrl,
     this.callData,
+    this.isDeletedEveryone = false,
   });
 }

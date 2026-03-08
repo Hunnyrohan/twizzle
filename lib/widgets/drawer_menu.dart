@@ -101,17 +101,9 @@ class _DrawerMenuState extends State<DrawerMenu> {
                   Navigator.pop(context);
                   Navigator.pushNamed(context, '/profile', arguments: user?.username);
                 }),
-                _drawerTile(Icons.list_alt_outlined, 'Lists', () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/lists');
-                }),
                 _drawerTile(Icons.bookmark_border, 'Bookmarks', () {
                   Navigator.pop(context);
                   Navigator.pushNamed(context, '/bookmarks');
-                }),
-                _drawerTile(Icons.bolt_outlined, 'Moments', () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/moments');
                 }),
                 const Divider(),
                 _drawerTile(Icons.settings_outlined, 'Settings and privacy', () {

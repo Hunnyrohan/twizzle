@@ -91,65 +91,69 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Cover Image
-                      user.coverImage != null
-                          ? CustomImage(
-                              imageUrl: MediaUtils.resolveImageUrl(user.coverImage!),
-                              height: 160,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(height: 160, color: const Color(0xff1DA1F2)),
-                      
-                      // Avatar and Action Button Row
-                      Positioned(
-                        bottom: -45,
-                        left: 0,
-                        right: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              // Avatar
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xff15202b) : Colors.white,
-                                  shape: BoxShape.circle,
+                  Container(
+                    height: 220, // Increased from 160 + overflow space
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Cover Image
+                        user.coverImage != null
+                            ? CustomImage(
+                                imageUrl: MediaUtils.resolveImageUrl(user.coverImage!),
+                                height: 160,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(height: 160, color: const Color(0xff1DA1F2)),
+                        
+                        // Avatar and Action Button Row
+                        Positioned(
+                          top: 115, // Positioned relative to the top to stay within 220 height
+                          left: 0,
+                          right: 0,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Avatar
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xff15202b) : Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: ClipOval(
+                                    child: user.image != null && user.image!.isNotEmpty
+                                        ? CustomImage(
+                                            imageUrl: MediaUtils.resolveImageUrl(user.image!),
+                                            width: 90,
+                                            height: 90,
+                                            errorWidget: _buildAvatarFallback(user.name, user.username, 90),
+                                          )
+                                        : _buildAvatarFallback(user.name, user.username, 90),
+                                  ),
                                 ),
-                                child: ClipOval(
-                                  child: user.image != null
-                                      ? CustomImage(
-                                          imageUrl: MediaUtils.resolveImageUrl(user.image!),
-                                          width: 90,
-                                          height: 90,
-                                        )
-                                      : Container(
-                                          width: 90,
-                                          height: 90,
-                                          color: Colors.grey.shade300,
-                                          child: const Icon(Icons.person, size: 45),
-                                        ),
-                                ),
-                              ),
-                              
-                              // Action Buttons
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
+                                
+                                // Action Buttons
+                                Row(
                                   children: [
                                     if (!isPageSelf) ...[
                                       _actionIcon(
                                         Icons.mail_outline, 
                                         onTap: () async {
-                                          final conversation = await context.read<MessageProvider>().getOrCreateConversation(user.id);
-                                          if (conversation != null && mounted) {
-                                            Navigator.pushNamed(context, '/chat', arguments: conversation);
+                                          try {
+                                            final conversation = await context.read<MessageProvider>().getOrCreateConversation(user.id);
+                                            if (conversation != null && mounted) {
+                                              Navigator.pushNamed(context, '/chat', arguments: conversation);
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Error: ${e.toString()}')),
+                                              );
+                                            }
                                           }
                                         }
                                       ),
@@ -184,14 +188,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 55), // Space for the overlapping avatar
+                  const SizedBox(height: 10), // Reduced from 55 because Stack height increased
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
@@ -312,15 +316,39 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
       );
     }
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      itemCount: tweets.length,
-      itemBuilder: (context, index) {
-        return TweetCard(
-          tweet: tweets[index],
-          onAction: () {},
+    return Consumer<TweetProvider>(
+      builder: (context, tweetProv, _) {
+        return ListView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: tweets.length,
+          itemBuilder: (context, index) {
+            final tweet = tweets[index];
+            // Get reactive version from cache
+            final reactiveTweet = tweetProv.cache[tweet.id] ?? tweet;
+            return TweetCard(
+              tweet: reactiveTweet,
+              onAction: () {},
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildAvatarFallback(String name, String username, double size) {
+    return Container(
+      width: size,
+      height: size,
+      color: const Color(0xff1DA1F2),
+      alignment: Alignment.center,
+      child: Text(
+        (name.isNotEmpty ? name : username)[0].toUpperCase(),
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: size * 0.4,
+        ),
+      ),
     );
   }
 

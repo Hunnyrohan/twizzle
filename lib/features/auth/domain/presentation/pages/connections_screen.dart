@@ -85,6 +85,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
   }
 
   Widget _buildUserList(List<User> users, bool isLoading) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (isLoading && users.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -151,15 +152,23 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
               ? null 
               : OutlinedButton(
                   onPressed: () {
-                    // Navigate to their profile or toggle follow
+                    context.read<ProfileProvider>().toggleFollowUser(user);
                   },
                   style: OutlinedButton.styleFrom(
+                    backgroundColor: user.isFollowing ? Colors.transparent : (isDark ? Colors.white : Colors.black),
+                    side: BorderSide(
+                      color: user.isFollowing ? Colors.grey.shade400 : (isDark ? Colors.white : Colors.black),
+                    ),
                     shape: const StadiumBorder(),
-                    side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                   ),
                   child: Text(
                     user.isFollowing ? 'Following' : 'Follow',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: user.isFollowing ? (isDark ? Colors.white : Colors.black) : (isDark ? Colors.black : Colors.white),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
           onTap: () {

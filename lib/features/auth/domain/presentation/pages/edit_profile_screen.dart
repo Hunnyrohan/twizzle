@@ -81,8 +81,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
         
         if (mounted) {
-          // Refresh profile provider if needed
-          context.read<ProfileProvider>().loadProfile(userProvider.user!.username);
+          // Refresh profile provider to reflect changes immediately
+          final profileProv = context.read<ProfileProvider>();
+          final currentUser = userProvider.user;
+          if (currentUser != null) {
+             profileProv.loadProfile(currentUser.username);
+          }
           Navigator.pop(context);
         }
       } else {

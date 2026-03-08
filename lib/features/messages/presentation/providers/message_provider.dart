@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:twizzle/core/api/dio_client.dart';
 import 'package:twizzle/core/config/app_config.dart';
 import 'package:twizzle/features/messages/domain/entities/message.dart';
 import 'package:twizzle/features/messages/domain/repositories/message_repository.dart';
@@ -31,7 +32,7 @@ class MessageProvider extends ChangeNotifier {
     if (_isSocketInitialized) return;
     _isSocketInitialized = true;
     
-    socketService.connect(AppConfig.baseUrl, userId);
+    socketService.connect(DioClient.getResolvedBaseUrl(), userId);
     
     socketService.messageStream.listen((data) {
       if (data != null) {

@@ -9,6 +9,6 @@ class LoginUser {
   final UserRepository repo;
   LoginUser(this.repo);
 
-  Future<Either<Failure, User>> call(String email, String password) =>
-      repo.loginUser(email, password);
+  Future<Either<Failure, User>> call(String email, String password, {bool confirmReactivate = false}) =>
+      repo.loginUser(email, password, confirmReactivate: confirmReactivate);
 }

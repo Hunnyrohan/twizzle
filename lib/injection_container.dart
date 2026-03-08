@@ -14,10 +14,13 @@ import 'package:twizzle/features/auth/data/repositories/user_repository_impl.dar
 import 'package:twizzle/features/auth/domain/repositories/user_repository.dart';
 import 'package:twizzle/features/auth/domain/usecases/register_user.dart';
 import 'package:twizzle/features/auth/domain/usecases/login_user.dart';
+import 'package:twizzle/features/auth/domain/usecases/toggle_block.dart';
+import 'package:twizzle/features/auth/domain/usecases/get_blocks.dart';
 import 'package:twizzle/theme/theme_provider.dart';
 
 // tweets
 import 'package:twizzle/features/tweets/data/datasources/tweet_remote_data_source.dart';
+import 'package:twizzle/features/tweets/data/datasources/tweet_local_data_source.dart';
 import 'package:twizzle/features/tweets/data/repositories/tweet_repository_impl.dart';
 import 'package:twizzle/features/tweets/domain/repositories/tweet_repository.dart';
 import 'package:twizzle/features/tweets/domain/usecases/get_feed.dart';
@@ -27,6 +30,11 @@ import 'package:twizzle/features/tweets/domain/usecases/unlike_tweet.dart';
 import 'package:twizzle/features/tweets/domain/usecases/retweet.dart';
 import 'package:twizzle/features/tweets/domain/usecases/comment_tweet.dart';
 import 'package:twizzle/features/tweets/domain/usecases/bookmark_tweet.dart';
+import 'package:twizzle/features/tweets/domain/usecases/get_bookmarks.dart';
+import 'package:twizzle/features/tweets/domain/usecases/delete_tweet.dart';
+import 'package:twizzle/features/tweets/domain/usecases/get_tweet_details.dart';
+import 'package:twizzle/features/tweets/domain/usecases/get_tweet_comments.dart';
+import 'package:twizzle/features/tweets/domain/usecases/toggle_not_interested.dart';
 import 'package:twizzle/features/tweets/presentation/providers/tweet_provider.dart';
 
 // search
@@ -68,6 +76,7 @@ Future<void> init() async {
   sl.registerLazySingleton<ApiRemoteSource>(() => ApiRemoteSource(sl()));
   sl.registerLazySingleton<HiveLocalSource>(() => HiveLocalSource());
   sl.registerLazySingleton<TweetRemoteDataSource>(() => TweetRemoteDataSource(sl()));
+  sl.registerLazySingleton<TweetLocalDataSource>(() => TweetLocalDataSource());
   sl.registerLazySingleton<SearchRemoteSource>(() => SearchRemoteSource(sl()));
   sl.registerLazySingleton<NotificationRemoteSource>(() => NotificationRemoteSource(sl()));
   sl.registerLazySingleton<MessageRemoteSource>(() => MessageRemoteSource(sl()));
@@ -77,7 +86,7 @@ Future<void> init() async {
   sl.registerLazySingleton<UserRepository>(
       () => UserRepositoryImpl(sl(), sl()));
   sl.registerLazySingleton<TweetRepository>(
-      () => TweetRepositoryImpl(sl(), sl()));
+      () => TweetRepositoryImpl(sl(), sl(), sl()));
   sl.registerLazySingleton<SearchRepository>(
       () => SearchRepositoryImpl(sl()));
   sl.registerLazySingleton<NotificationRepository>(
@@ -85,7 +94,7 @@ Future<void> init() async {
   
   // For MessageRepository, we need currentUserId. 
   sl.registerLazySingleton<MessageRepository>(
-      () => MessageRepositoryImpl(sl(), sl<UserProvider>().user?.id ?? ''));
+      () => MessageRepositoryImpl(sl(), sl<UserProvider>()));
 
   // use cases
   sl.registerLazySingleton(() => RegisterUser(sl()));
@@ -96,11 +105,18 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UnlikeTweet(sl()));
   sl.registerLazySingleton(() => Retweet(sl()));
   sl.registerLazySingleton(() => BookmarkTweet(sl()));
+  sl.registerLazySingleton(() => GetBookmarks(sl()));
   sl.registerLazySingleton(() => CommentTweet(sl()));
+  sl.registerLazySingleton(() => DeleteTweet(sl()));
+  sl.registerLazySingleton(() => ToggleBlock(sl()));
+  sl.registerLazySingleton(() => GetBlocks(sl()));
+  sl.registerLazySingleton(() => GetTweetDetails(sl()));
+  sl.registerLazySingleton(() => GetTweetComments(sl()));
+  sl.registerLazySingleton(() => ToggleNotInterested(sl()));
 
   // provider
-  sl.registerFactory(() => UserProvider(register: sl(), login: sl(), repo: sl()));
-  sl.registerFactory(() => TweetProvider(
+  sl.registerLazySingleton(() => UserProvider(register: sl(), login: sl(), getBlocksUseCase: sl(), repo: sl()));
+  sl.registerLazySingleton(() => TweetProvider(
         getFeedUseCase: sl(),
         createTweetUseCase: sl(),
         likeTweetUseCase: sl(),
@@ -108,10 +124,22 @@ Future<void> init() async {
         retweetUseCase: sl(),
         bookmarkTweetUseCase: sl(),
         commentTweetUseCase: sl(),
+        deleteTweetUseCase: sl(),
+        toggleBlockUseCase: sl(),
+        getTweetDetailsUseCase: sl(),
+        getTweetCommentsUseCase: sl(),
+        getBookmarksUseCase: sl(),
+        toggleNotInterestedUseCase: sl(),
       ));
-  sl.registerFactory(() => SearchProvider(repository: sl()));
-  sl.registerFactory(() => NotificationProvider(repository: sl()));
-  sl.registerFactory(() => MessageProvider(repository: sl(), socketService: sl()));
-  sl.registerFactory(() => ProfileProvider(userRepository: sl(), tweetRepository: sl()));
+  sl.registerLazySingleton(() => SearchProvider(repository: sl(), userRepository: sl()));
+  sl.registerLazySingleton(() => NotificationProvider(repository: sl()));
+  sl.registerLazySingleton(
+      () => MessageProvider(repository: sl(), socketService: sl()));
+  sl.registerLazySingleton(() => ProfileProvider(
+        userRepository: sl(),
+        tweetRepository: sl(),
+        tweetProvider: sl(),
+        userProvider: sl(),
+      ));
   sl.registerLazySingleton(() => ThemeProvider(sl<Box>(instanceName: 'settings')));
 }

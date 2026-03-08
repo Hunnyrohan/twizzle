@@ -28,17 +28,20 @@ class UserModel extends User {
     final token = json['token'] as String? ?? userData['token'] as String? ?? '';
 
     return UserModel(
-      id: userData['_id'] as String? ?? userData['id'] as String? ?? '',
-      name: userData['name'] as String? ?? '',
+      id: (userData['_id'] ?? userData['id'] ?? '').toString(),
+      name: userData['name'] as String? ?? userData['displayName'] as String? ?? '',
       username: userData['username'] as String? ?? '',
       email: userData['email'] as String? ?? '',
       password: password,
       token: token,
-      image: userData['image'] as String? ?? userData['avatar'] as String?,
+      image: userData['image'] as String? ?? 
+             userData['avatar'] as String? ?? 
+             userData['avatarUrl'] as String?,
       bio: userData['bio'] as String?,
       location: userData['location'] as String?,
       website: userData['website'] as String?,
-      coverImage: userData['coverImage'] as String? ?? userData['cover'] as String?,
+      coverImage: userData['coverImage'] as String? ?? 
+                  userData['cover'] as String?,
       joinedAt: userData['createdAt'] != null ? DateTime.parse(userData['createdAt'] as String) : null,
       isFollowing: userData['isFollowing'] as bool? ?? false,
       isSelf: userData['isSelf'] as bool? ?? false,
